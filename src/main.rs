@@ -1,5 +1,5 @@
-mod models;
+
 
 fn main() {
-    println!("Hello, world!");
+    println!("Barnaby Model System");
 }

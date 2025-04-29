@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use super::EntityType;
+use crate::entity_type::EntityType;
+
+
 
 #[derive(Debug, Clone)]
 pub struct ObjectPersonRelation {
