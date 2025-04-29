@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod entity_type;
 mod location;
 mod event;
