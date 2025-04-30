@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::entity_type::EntityType;
+use super::entity_type::EntityType;
 
 
 

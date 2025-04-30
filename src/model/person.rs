@@ -35,7 +35,6 @@ pub struct Persons {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn test_new_person() {
         let person = Person::new(

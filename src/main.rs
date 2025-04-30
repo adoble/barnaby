@@ -1,5 +1,7 @@
+#![allow(dead_code)]
 
+mod model;
 
 fn main() {
-    println!("Barnaby Model System");
+    println!("Hello, Inspector Barnaby!");
 }
