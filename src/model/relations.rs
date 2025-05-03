@@ -3,106 +3,60 @@ use super::entity_type::EntityType;
 use super::time::Time;
 
 #[derive(Debug, Clone)]
-pub struct ObjectPersonRelation {
-    pub object_id: u32,
-    pub person_id: u32,
+pub struct Relation {
+    pub from: EntityType,
+    pub to: EntityType,
     pub relationship_type: String,
-    pub start_date: Option<Time>,
-    pub end_date: Option<Time>,
+    pub start_time: Option<Time>,
+    pub end_time: Option<Time>,
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ObjectLocationRelation {
-    pub object_id: u32,
-    pub location_id: u32,
-    pub placement: Option<String>,
-    pub since: Option<Time>,
-    pub until: Option<Time>,
-    pub notes: Option<String>,
+
+pub struct Relations (HashMap<(EntityType, EntityType), Relation>);
+
+
+impl Relations {
+    pub fn new() -> Self {
+        Relations(HashMap::new())
+    }
+
+    pub fn add_relation(&mut self,  relation: Relation) {
+        self.0.insert((relation.from,relation.to) , relation.clone());
+    }
+
+    pub fn get_relation(&self, from: EntityType, to: EntityType) -> Option<Relation> {
+        self.0.get(&(from, to)).cloned()
+    }
+
+    pub fn remove_relation(&mut self, from: &EntityType, to: &EntityType) {
+        self.0.remove(&(from.clone(), to.clone()));
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    } 
 }
 
-#[derive(Debug, Clone)]
-pub struct PersonLocationRelation {
-    pub person_id: u32,
-    pub location_id: u32,
-    pub role: Option<String>,
-    pub start_date: Option<Time>,
-    pub end_date: Option<Time>,
-    pub notes: Option<String>,
-}
 
-#[derive(Debug, Clone)]
-pub struct EventRelation {
-    pub event_id: u32,
-    pub entity_id: u32,
-    pub entity_type: EntityType,
-    pub role: String,
-    pub notes: Option<String>,
-}
 
-#[derive(Debug, Clone)]
-pub struct ObjectObjectRelation {
-    pub object_id_from: u32,
-    pub object_id_to: u32,
-    pub relationship_type: String,
-    pub since: Option<Time>,
-    pub until: Option<Time>,
-    pub notes: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PersonPersonRelation {
-    pub person_id_from: u32,
-    pub person_id_to: u32,
-    pub relationship_type: String,
-    pub start_date: Option<Time>,
-    pub end_date: Option<Time>,
-    pub notes: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct EventEventRelation {
-    pub event_id_from: u32,
-    pub event_id_to: u32,
-    pub relationship_type: String,
-    pub notes: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct LocationLocationRelation {
-    pub location_id_from: u32,
-    pub location_id_to: u32,
-    pub relationship_type: String,
-    pub since: Option<Time>,
-    pub until: Option<Time>,
-    pub notes: Option<String>,
-}
-
-#[derive(Debug, Default)]
-pub struct Relations {
-    pub object_person: HashMap<(u32, u32), ObjectPersonRelation>,
-    pub object_location: HashMap<(u32, u32), ObjectLocationRelation>,
-    pub person_location: HashMap<(u32, u32), PersonLocationRelation>,
-    pub object_object: HashMap<(u32, u32), ObjectObjectRelation>,
-    pub person_person: HashMap<(u32, u32), PersonPersonRelation>,
-    pub event_event: HashMap<(u32, u32), EventEventRelation>,
-    pub location_location: HashMap<(u32, u32), LocationLocationRelation>,
-    pub event_relations: Vec<EventRelation>,
-}
+// [derive(Debug, Default, Eq, PartialEq)]
+// pub struct Relations {
+//     pub items: HashMap<(EntityType, EntityType), Relation>,
+// }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_person_person_relation() {
-        let relation = PersonPersonRelation {
-            person_id_from: 1,
-            person_id_to: 2,
+    fn test_marriage_relation() {
+        let relation = Relation {
+            from: EntityType::Person(1),
+            to: EntityType::Person(2),
             relationship_type: "Married to".to_string(),
-            start_date: Some(Time("20 years ago".to_string())),
-            end_date: None,
+            start_time: Some(Time("20 years ago".to_string())),
+            end_time: None,
             notes: Some("Tom and Joyce Barnaby".to_string()),
         };
 
@@ -110,139 +64,76 @@ mod tests {
     }
 
     #[test]
-    fn test_object_object_relation() {
-        let relation = ObjectObjectRelation {
-            object_id_from: 1,
-            object_id_to: 2,
-            relationship_type: "Contains".to_string(),
-            since: Some(Time("when found".to_string())),
-            until: None,
-            notes: Some("Murder weapon inside garden shed".to_string()),
+    fn test_weapon_location() {
+        let relation = Relation {
+            from: EntityType::Object(1),
+            to: EntityType::Location(3),
+            relationship_type: "Hidden in".to_string(),
+            start_time: Some(Time("night of the murder".to_string())),
+            end_time: Some(Time("discovery by police".to_string())),
+            notes: Some("Murder weapon under floorboards".to_string()),
         };
 
-        assert_eq!(relation.relationship_type, "Contains");
-    }
-
-    #[test]
-    fn test_event_event_relation() {
-        let relation = EventEventRelation {
-            event_id_from: 1,
-            event_id_to: 2,
-            relationship_type: "Leads to".to_string(),
-            notes: Some("Murder leads to discovery of old family secret".to_string()),
-        };
-
-        assert_eq!(relation.relationship_type, "Leads to");
-    }
-
-    #[test]
-    fn test_location_location_relation() {
-        let relation = LocationLocationRelation {
-            location_id_from: 1,
-            location_id_to: 2,
-            relationship_type: "Adjacent to".to_string(),
-            since: Some(Time("always".to_string())),
-            until: None,
-            notes: Some("Vicarage garden adjacent to churchyard".to_string()),
-        };
-
-        assert_eq!(relation.relationship_type, "Adjacent to");
+        match relation.from {
+            EntityType::Object(id) => assert_eq!(id, 1),
+            _ => panic!("Wrong entity type"),
+        }
     }
 
     #[test]
     fn test_relations_crud() {
-        let mut relations = Relations::default();
+        let mut relations = Relations::new();
 
-        // Test Person-Person relationship
-        let tom_joyce = PersonPersonRelation {
-            person_id_from: 1,
-            person_id_to: 2,
-            relationship_type: "Married to".to_string(),
-            start_date: Some(Time("20 years ago".to_string())),
-            end_date: None,
-            notes: Some("Tom and Joyce Barnaby".to_string()),
+        // Test adding a relation
+        let murder_weapon = Relation {
+            from: EntityType::Object(1),
+            to: EntityType::Location(2),
+            relationship_type: "Found at".to_string(),
+            start_time: Some(Time("morning".to_string())),
+            end_time: None,
+            notes: Some("Indian sword at vicarage".to_string()),
         };
-        relations.person_person.insert((1, 2), tom_joyce.clone());
-        assert_eq!(relations.person_person.get(&(1, 2)).unwrap().relationship_type, "Married to");
 
-        // Test Event-Event relationship
-        let murder_discovery = EventEventRelation {
-            event_id_from: 1,
-            event_id_to: 2,
-            relationship_type: "Leads to".to_string(),
-            notes: Some("Murder leads to secret discovery".to_string()),
-        };
-        relations.event_event.insert((1, 2), murder_discovery.clone());
-        assert_eq!(relations.event_event.get(&(1, 2)).unwrap().relationship_type, "Leads to");
+        // Fixed line - removed unnecessary clone()
+        relations.add_relation(murder_weapon);
 
-        // Test Object-Location relationship
-        let weapon_shed = ObjectLocationRelation {
-            object_id: 1,
-            location_id: 3,
-            placement: Some("Hidden under floorboards".to_string()),
-            since: Some(Time("night of the murder".to_string())),
-            until: Some(Time("discovery by police".to_string())),
-            notes: Some("Murder weapon location".to_string()),
-        };
-        relations.object_location.insert((1, 3), weapon_shed.clone());
-        assert_eq!(
-            relations.object_location.get(&(1, 3)).unwrap().placement,
-            Some("Hidden under floorboards".to_string())
-        );
-
-        // Test generic Event relation
-        let murder_suspect = EventRelation {
-            event_id: 1,
-            entity_id: 4,
-            entity_type: EntityType::Person,
-            role: "Suspect".to_string(),
-            notes: Some("Primary suspect in murder".to_string()),
-        };
-        relations.event_relations.push(murder_suspect.clone());
-        assert_eq!(relations.event_relations[0].role, "Suspect");
+        // Test retrieval
+        let key = (EntityType::Object(1), EntityType::Location(2));
+        let retrieved = relations.get_relation(EntityType::Object(1), EntityType::Location(2)).unwrap();
+        assert_eq!(retrieved.relationship_type, "Found at");
 
         // Test removal
-        relations.person_person.remove(&(1, 2));
-        assert!(relations.person_person.get(&(1, 2)).is_none());
+        relations.remove_relation(&EntityType::Object(1), &EntityType::Location(2));
+        assert!(relations.get_relation(EntityType::Object(1), EntityType::Location(2)).is_none());
     }
 
     #[test]
-    fn test_relations_empty() {
-        let relations = Relations::default();
-        assert!(relations.person_person.is_empty());
-        assert!(relations.event_event.is_empty());
-        assert!(relations.object_location.is_empty());
-        assert!(relations.event_relations.is_empty());
-    }
-
-    #[test]
-    fn test_relations_multiple() {
-        let mut relations = Relations::default();
+    fn test_multiple_relations() {
+        let mut relations = Relations::new();
         
-        // Add multiple location relationships
-        let vicarage_garden = LocationLocationRelation {
-            location_id_from: 1,
-            location_id_to: 2,
+        // Adjacent locations
+        let vicarage_garden = Relation {
+            from: EntityType::Location(1),
+            to: EntityType::Location(2),
             relationship_type: "Adjacent to".to_string(),
-            since: Some(Time("always".to_string())),
-            until: None,
+            start_time: Some(Time("always".to_string())),
+            end_time: None,
             notes: Some("Vicarage garden next to churchyard".to_string()),
         };
 
-        let church_village = LocationLocationRelation {
-            location_id_from: 2,
-            location_id_to: 3,
-            relationship_type: "Part of".to_string(),
-            since: Some(Time("medieval times".to_string())),
-            until: None,
-            notes: Some("Church in Midsomer village".to_string()),
+        // Event causality
+        let murder_discovery = Relation {
+            from: EntityType::Event(1),
+            to: EntityType::Event(2),
+            relationship_type: "Leads to".to_string(),
+            start_time: None,
+            end_time: None,
+            notes: Some("Murder leads to discovery of family secret".to_string()),
         };
 
-        relations.location_location.insert((1, 2), vicarage_garden);
-        relations.location_location.insert((2, 3), church_village);
-
-        assert_eq!(relations.location_location.len(), 2);
-        assert!(relations.location_location.contains_key(&(1, 2)));
-        assert!(relations.location_location.contains_key(&(2, 3)));
+        relations.add_relation(vicarage_garden);
+        relations.add_relation(murder_discovery);
+        
+        assert_eq!(relations.len(), 2);
     }
 }
