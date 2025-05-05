@@ -48,6 +48,21 @@ impl Locations {
     pub fn add(&mut self, location: Location) {
         self.items.insert(location.id, location);
     }
+
+    /// Returns the number of locations in the collection
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    /// Returns true if the collection contains no locations
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    /// Finds a location by name
+    pub fn find(&self, name: &str) -> Option<&Location> {
+        self.items.values().find(|loc| loc.name == name)
+    }
 }
 
 #[cfg(test)]
@@ -105,5 +120,30 @@ mod tests {
         assert_eq!(locations.items.len(), 2);
         assert!(locations.items.contains_key(&1));
         assert!(locations.items.contains_key(&2));
+    }
+
+    #[test]
+    fn test_locations_len_and_find() {
+        let mut locations = Locations::new();
+        assert_eq!(locations.len(), 0);
+        assert!(locations.is_empty());
+
+        let badgers_drift = Location::new(
+            1,
+            "Badger's Drift".to_string(),
+            Some("Small village in Midsomer County".to_string()),
+        );
+        locations.add(badgers_drift);
+
+        assert_eq!(locations.len(), 1);
+        assert!(!locations.is_empty());
+
+        // Test find functionality
+        let found = locations.find("Badger's Drift");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, 1);
+
+        // Test non-existent location
+        assert!(locations.find("Midsomer Worthy").is_none());
     }
 }
