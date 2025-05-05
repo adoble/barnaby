@@ -49,6 +49,21 @@ impl Objects {
     pub fn add(&mut self, object: Object) {
         self.0.insert(object.id, object);
     }
+
+    /// Returns the number of objects in the collection
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns true if the collection contains no objects
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
+    }
+
+    /// Finds an object by name
+    pub fn find(&self, name: &str) -> Option<&Object> {
+        self.0.values().find(|obj| obj.name == name)
+    }
 }
 
 #[cfg(test)]
@@ -117,5 +132,30 @@ mod tests {
         // Verify object types are maintained
         assert!(objects.0.get(&1).unwrap().is_weapon());
         assert!(!objects.0.get(&2).unwrap().is_weapon());
+    }
+
+    #[test]
+    fn test_objects_len_and_find() {
+        let mut objects = Objects::new();
+        assert_eq!(objects.len(), 0);
+        assert!(objects.is_empty());
+
+        let sword = Object::new(
+            1,
+            "Indian Sword".to_string(),
+            Some("Murder weapon".to_string()),
+        );
+        objects.add(sword);
+
+        assert_eq!(objects.len(), 1);
+        assert!(!objects.is_empty());
+
+        // Test find functionality
+        let found = objects.find("Indian Sword");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, 1);
+
+        // Test non-existent object
+        assert!(objects.find("Garden Shears").is_none());
     }
 }

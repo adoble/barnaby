@@ -7,6 +7,7 @@ use pest_derive::Parser;
 
 use crate::model::{person::Person, repository::Repository};
 
+use super::object_qualifier::ObjectQualifier;
 use super::person_qualifier::PersonQualifier;
 
 #[derive(Parser)]
@@ -44,13 +45,43 @@ pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) {
             Rule::person => process_person(pair, repository),
             // Rule::event => println!("Event: {}", pair.as_str()),
             // Rule::location => println!("Location: {}", pair.as_str()),
-            // Rule::object => println!("Object: {}", pair.as_str()),
+            Rule::object => process_object(pair, repository),
             // Rule::alias => println!("Alias"),
             // Rule::entity => process_entity(pair),
             // Rule::relationship => println!("Relationship"),
             _ => (),
         }
     }
+}
+
+// Process an object
+pub fn process_object(pair: Pair<'_, Rule>, repository: &mut Repository) {
+    let mut name = "";
+    let mut object_qualifier = ObjectQualifier::None;
+
+    // TODO
+    let description = None;
+
+    let inner_rules = pair.into_inner();
+    for pair in inner_rules {
+        match pair.as_rule() {
+            Rule::id => name = pair.as_str(),
+            Rule::object_qualifier => object_qualifier = ObjectQualifier::from_str(pair.as_str()),
+            _ => (),
+        }
+    }
+    let object_id = repository.new_id();
+    let mut object = crate::model::object::Object::new(object_id, name.to_string(), description);
+
+    match object_qualifier {
+        ObjectQualifier::None => (),
+        ObjectQualifier::Weapon => object.set_type(crate::model::object::ObjectType::Weapon),
+        _ => todo!(),
+    }
+
+    // TODO ObjectType and ObjectQualifier seem to be redundant
+
+    repository.add_object(object);
 }
 
 pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) {
@@ -100,5 +131,31 @@ mod tests {
         let person = person.unwrap();
         assert_eq!(person.name, "Richard Bayly");
         assert!(person.is_victim);
+    }
+
+    #[test]
+    fn test_parse_object() {
+        let mut repo = &mut Repository::new();
+        TroyParser::build_model("o Old Quarry", &mut repo);
+
+        assert_eq!(repo.objects.len(), 1);
+
+        let object = repo.objects.find("Old Quarry");
+        assert!(object.is_some());
+
+        let object = object.unwrap();
+        assert_eq!(object.name, "Old Quarry");
+
+        // weapon qualifier
+        TroyParser::build_model("ow Indian Knife", &mut repo);
+
+        assert_eq!(repo.objects.len(), 2);
+
+        let object = repo.objects.find("Indian Knife");
+        assert!(object.is_some());
+
+        let object = object.unwrap();
+        assert_eq!(object.name, "Indian Knife");
+        assert!(object.is_weapon());
     }
 }
