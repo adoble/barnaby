@@ -1,0 +1,32 @@
+
+word = { (ASCII_DIGIT| ASCII_ALPHA)+ }
+
+id = { word ~ (" " ~ word)*}
+
+person = { ("p" | "P") ~ person_qualifier? ~ " " ~ id}
+
+person_qualifier  = { "v"  | "V" }
+
+event = { ("e" | "E") ~ " "  ~ id ~ (" " ~ time)* }
+
+location  = { ("l" | "L") ~ " " ~  id }
+
+object  ={ ("o" | "O")  ~ object_qualifier? ~ " " ~ id }
+
+object_qualifier = {"w" | "W"}
+
+aka = {"aka"}
+
+alias = {person ~ " "* ~ aka ~ " "*  ~ person }
+
+relation = {"  " ~ " "* ~ id ~ (" " ~ time)* ~ "  " ~ " "* }
+
+time = { "t" ~ " " ~ time_statement}
+
+time_statement = { id }
+
+entity = { person | event | object | location }
+
+relationship = {entity ~ relation ~ entity}
+
+statement = { entity | relationship | alias }
