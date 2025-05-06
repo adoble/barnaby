@@ -5,7 +5,9 @@
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
-use crate::model::{location::Location, person::Person, repository::Repository};
+use crate::model::{
+    event::Event, location::Location, person::Person, repository::Repository, time::Time,
+};
 
 use super::object_qualifier::ObjectQualifier;
 use super::person_qualifier::PersonQualifier;
@@ -43,7 +45,7 @@ pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) {
     for pair in inner_rules {
         match pair.as_rule() {
             Rule::person => process_person(pair, repository),
-            // Rule::event => println!("Event: {}", pair.as_str()),
+            Rule::event => process_event(pair, repository),
             Rule::location => process_location(pair, repository),
             Rule::object => process_object(pair, repository),
             // Rule::alias => println!("Alias"),
@@ -52,6 +54,45 @@ pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) {
             _ => (),
         }
     }
+}
+
+// Process and event
+pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) {
+    let mut name = "";
+
+    let mut time: Option<Time> = None;
+    // TODO
+    let description = None;
+
+    let inner_rules = pair.into_inner();
+    for pair in inner_rules {
+        match pair.as_rule() {
+            Rule::id => name = pair.as_str(),
+            Rule::time => time = process_time(pair),
+            _ => println!("Other: {}", pair.as_str()),
+        }
+    }
+    let event_id = repository.new_id();
+
+    let event = Event::new(event_id, name.to_string(), description, time);
+
+    repository.add_event(event);
+}
+
+// Process a time
+pub fn process_time(pair: Pair<'_, Rule>) -> Option<Time> {
+    let mut time: Option<Time> = None;
+
+    let inner_rules = pair.into_inner();
+    for pair in inner_rules {
+        match pair.as_rule() {
+            Rule::id => {
+                time = Some(Time::new(pair.as_str()));
+            }
+            _ => (),
+        }
+    }
+    time
 }
 
 // Process a location
@@ -191,5 +232,36 @@ mod tests {
 
         let location = location.unwrap();
         assert_eq!(location.name, "Old Quarry");
+    }
+
+    #[test]
+    fn test_parse_event() {
+        let mut repo = Repository::new();
+        TroyParser::build_model("e Robbery", &mut repo);
+
+        assert_eq!(repo.events.len(), 1);
+
+        let event = repo.events.find("Robbery");
+        assert!(event.is_some());
+
+        let event = event.unwrap();
+        assert_eq!(event.name, "Robbery");
+    }
+
+    #[test]
+    fn test_parse_event_with_time() {
+        let mut repo = Repository::new();
+        TroyParser::build_model("e Robbery  t yesterday", &mut repo);
+
+        assert_eq!(repo.events.len(), 1);
+
+        let event = repo.events.find("Robbery");
+        assert!(event.is_some());
+
+        let event = event.unwrap();
+        assert_eq!(event.name, "Robbery");
+
+        assert_eq!(event.time_as_str(), "yesterday");
+        // TODO check time
     }
 }

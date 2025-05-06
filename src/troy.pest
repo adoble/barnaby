@@ -7,7 +7,7 @@ person = { ("p" | "P") ~ person_qualifier? ~ " " ~ id}
 
 person_qualifier  = { "v"  | "V" }
 
-event = { ("e" | "E") ~ " "  ~ id ~ (" " ~ time)* }
+event = { ("e" | "E") ~ " "  ~ id ~ ("  " ~ time)* }
 
 location  = { ("l" | "L") ~ " " ~  id }
 
@@ -21,9 +21,7 @@ alias = {person ~ " "* ~ aka ~ " "*  ~ person }
 
 relation = {"  " ~ " "* ~ id ~ (" " ~ time)* ~ "  " ~ " "* }
 
-time = { "t" ~ " " ~ time_statement}
-
-time_statement = { id }
+time = { "t" ~ " " ~ id}
 
 entity = { person | event | object | location }
 

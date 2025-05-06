@@ -6,7 +6,7 @@ pub struct Event {
     pub id: u32,
     pub name: String,
     pub description: Option<String>,
-    pub time: Time,
+    pub time: Option<Time>,
 }
 
 impl Event {
@@ -25,13 +25,27 @@ impl Event {
             id,
             name,
             description,
-            time: time.unwrap_or_else(|| Time::new("now")),
+            time,
         }
     }
 
     /// Sets the time of the event
     pub fn set_time(&mut self, time: Time) {
-        self.time = time;
+        self.time = Some(time);
+    }
+
+    /// Get the time of the event
+    pub fn time(&self) -> Option<&Time> {
+        self.time.as_ref()
+    }
+
+    /// Get the time of the event as &str.
+    /// Returns empty string if no time is set.
+    pub fn time_as_str(&self) -> &str {
+        match &self.time {
+            Some(time) => &time.0,
+            None => "",
+        }
     }
 }
 
@@ -47,6 +61,21 @@ impl Events {
     /// Adds an event to the collection
     pub fn add(&mut self, event: Event) {
         self.0.insert(event.id, event);
+    }
+
+    /// Returns the number of events in the collection
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns true if the collection contains no events
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Finds an event by name
+    pub fn find(&self, name: &str) -> Option<&Event> {
+        self.0.values().find(|event| event.name == name)
     }
 }
 
@@ -65,17 +94,13 @@ mod tests {
 
         assert_eq!(event.id, 1);
         assert_eq!(event.name, "Murder at Badger's Drift");
-        assert_eq!(event.time.0, "yesterday morning");
+        assert_eq!(event.time.unwrap().0, "yesterday morning");
 
-        // Using the new method
-        let event2 = Event::new(
-            2,
-            "Suspicious Activity".to_string(),
-            None,
-            Some(Time::new("late last night")),
-        );
+        // Test event without time
+        let event2 = Event::new(2, "Suspicious Activity".to_string(), None, None);
 
-        assert_eq!(event2.time.0, "late last night");
+        assert!(event2.time.is_none());
+        assert_eq!(event2.time_as_str(), "");
     }
 
     #[test]
@@ -94,6 +119,32 @@ mod tests {
 
         let retrieved = events.0.get(&1).unwrap();
         assert_eq!(retrieved.name, "Murder at Badger's Drift");
-        assert_eq!(retrieved.time.0, "yesterday morning");
+        assert_eq!(retrieved.time.as_ref().unwrap().0, "yesterday morning");
+    }
+
+    #[test]
+    fn test_events_len_and_find() {
+        let mut events = Events::new();
+        assert_eq!(events.len(), 0);
+        assert!(events.is_empty());
+
+        let murder = Event::new(
+            1,
+            "Murder at Badger's Drift".to_string(),
+            Some("Body found in the woods".to_string()),
+            Some(Time("yesterday morning".to_string())),
+        );
+        events.add(murder);
+
+        assert_eq!(events.len(), 1);
+        assert!(!events.is_empty());
+
+        // Test find functionality
+        let found = events.find("Murder at Badger's Drift");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, 1);
+
+        // Test non-existent event
+        assert!(events.find("Garden Party").is_none());
     }
 }
