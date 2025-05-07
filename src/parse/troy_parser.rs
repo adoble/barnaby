@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-// use std::fs;
-
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
@@ -30,7 +28,7 @@ impl TroyParser {
                 Rule::event => println!("Event: {}", pair.as_str()),
                 Rule::location => println!("Location: {}", pair.as_str()),
                 Rule::object => println!("Object: {}", pair.as_str()),
-                Rule::alias => println!("Alias"),
+                Rule::alias => process_alias(pair, repository),
                 Rule::entity => process_entity(pair, repository),
                 Rule::relationship => println!("Relationship"),
                 _ => (),
@@ -44,15 +42,18 @@ pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) {
 
     for pair in inner_rules {
         match pair.as_rule() {
-            Rule::person => process_person(pair, repository),
+            Rule::person => {
+                // TODO  alle process_* function should return EntityType(id)
+                let _ = process_person(pair, repository);
+            }
             Rule::event => process_event(pair, repository),
             Rule::location => process_location(pair, repository),
             Rule::object => process_object(pair, repository),
             // Rule::alias => println!("Alias"),
             // Rule::entity => process_entity(pair),
             // Rule::relationship => println!("Relationship"),
-            _ => (),
-        }
+            _ => (), // TODO change the type of an id so none is possible
+        };
     }
 }
 
@@ -69,6 +70,7 @@ pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) {
         match pair.as_rule() {
             Rule::id => name = pair.as_str(),
             Rule::time => time = process_time(pair),
+
             _ => println!("Other: {}", pair.as_str()),
         }
     }
@@ -77,6 +79,42 @@ pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) {
     let event = Event::new(event_id, name.to_string(), description, time);
 
     repository.add_event(event);
+}
+// Process an alias
+pub fn process_alias(pair: Pair<'_, Rule>, repository: &mut Repository) {
+    println!("DEBUG: process_alias: {}", pair.as_str());
+
+    let mut alias = None;
+    // let mut found_person: Option<&mut Person> = None;
+    let mut found_person: Option<&mut Person> = None;
+    let found_person_id: Option<u32> = None;
+
+    let inner_rules = pair.into_inner();
+    for pair in inner_rules {
+        match pair.as_rule() {
+            Rule::person => {
+                // found_person = repository.persons.find_mut(pair.as_str());
+                found_person = repository.persons.find_mut(pair.as_str());
+
+                if found_person.is_some() {
+                } else {
+                    // Add a new person
+                    process_person(pair, repository);
+                }
+            }
+            Rule::id => alias = Some(pair.as_str().to_string()),
+            _ => (),
+        }
+    }
+
+    //repository.persons.get_mut(id)
+
+    // if found_person.is_some() {
+    //     let person = found_person.unwrap();
+    //     person.add_alias(alias.unwrap());
+    // } else {
+    //     println!("ERROR: Person not found"); // TODO proper error handling
+    // }
 }
 
 // Process a time
@@ -145,7 +183,7 @@ pub fn process_object(pair: Pair<'_, Rule>, repository: &mut Repository) {
     repository.add_object(object);
 }
 
-pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) {
+pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> u32 {
     let mut name = "";
     let mut person_qualifier = PersonQualifier::None;
 
@@ -163,6 +201,7 @@ pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) {
     let person_id = repository.new_id();
     let mut person = Person::new(person_id, name.to_string(), notes);
 
+    // TODO add other qualifiers to Person in the grammer
     match person_qualifier {
         PersonQualifier::None => (),
         PersonQualifier::Victim => person.set_victim_status(true),
@@ -171,7 +210,7 @@ pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) {
         PersonQualifier::Other(_) => todo!(),
     }
 
-    repository.add_person(person);
+    repository.add_person(person)
 }
 
 #[cfg(test)]
@@ -263,5 +302,24 @@ mod tests {
 
         assert_eq!(event.time_as_str(), "yesterday");
         // TODO check time
+    }
+
+    #[test]
+    fn test_parse_aka() {
+        let mut repo = Repository::new();
+        TroyParser::build_model("p Robert Bayly  aka  Bob", &mut repo);
+
+        assert_eq!(repo.persons.len(), 1);
+
+        let person = repo.persons.find("Robert Bayly");
+        assert!(person.is_some());
+
+        let person = person.unwrap();
+        assert_eq!(person.name, "Robert Bayly");
+
+        assert_eq!(person.number_aliases(), 1);
+
+        let aliases: Vec<String> = person.aliases().map(|s| s.to_string()).collect();
+        assert_eq!(aliases, vec!["Bob"]);
     }
 }

@@ -45,6 +45,16 @@ impl Person {
         self.name == search_name || self.aliases.contains(search_name)
     }
 
+    /// Returns an iterator over the aliases
+    pub fn aliases(&self) -> impl Iterator<Item = &String> {
+        self.aliases.iter()
+    }
+
+    /// Returns the number of aliases
+    pub fn number_aliases(&self) -> usize {
+        self.aliases.len()
+    }
+
     /// Sets the victim status for the person
     ///
     /// # Arguments
@@ -67,8 +77,18 @@ impl Persons {
     ///
     /// # Arguments
     /// * `person` - Person to add
-    pub fn add(&mut self, person: Person) {
+    ///
+    /// # Returns
+    /// The ID of the added person
+    pub fn add(&mut self, person: Person) -> u32 {
+        let id = person.id;
         self.0.insert(person.id, person);
+        id
+    }
+
+    /// Gets a mutable person by id
+    pub fn get_mut(&mut self, id: u32) -> Option<&mut Person> {
+        self.0.get_mut(&id)
     }
 
     /// Finds a person by name or alias
@@ -77,6 +97,14 @@ impl Persons {
     /// * `name` - Name or alias to search for
     pub fn find(&self, name: &str) -> Option<&Person> {
         self.0.values().find(|p| p.matches_name(name))
+    }
+
+    /// Finds a person by name or alias and returns a mutable reference
+    ///
+    /// # Arguments
+    /// * `name` - Name or alias to search for
+    pub fn find_mut(&mut self, name: &str) -> Option<&mut Person> {
+        self.0.values_mut().find(|p| p.matches_name(name))
     }
 
     /// Returns the number of persons in the collection
@@ -129,6 +157,8 @@ mod tests {
         person.add_alias("Rich");
 
         assert_eq!(person.name, "Richard Bayly");
+        assert!(person.matches_name("Richard Bayly"));
+        assert!(!person.matches_name("Richard Bay"));
         assert!(person.matches_name("Richard"));
         assert!(person.matches_name("Rich"));
         assert!(!person.matches_name("Dick"));
@@ -204,6 +234,28 @@ mod tests {
     }
 
     #[test]
+    fn test_find_person() {
+        let mut persons = Persons::new();
+        let person = Person::new(1, "Tom Barnaby".to_string(), Some("DCI".to_string()));
+        persons.add(person);
+
+        let person = Person::new(2, "Ben Jones".to_string(), Some("DS".to_string()));
+        persons.add(person);
+
+        let person = Person::new(3, "Kate Wilding".to_string(), Some("Forensics".to_string()));
+        persons.add(person);
+
+        let person = persons.find("Tom Barnaby");
+
+        // Find by primary name
+        assert!(person.is_some());
+        assert_eq!(persons.find("Tom Barnaby").unwrap().name, "Tom Barnaby");
+
+        assert!(persons.find("Kate Wilding").is_some());
+        assert_eq!(persons.find("Kate Wilding").unwrap().name, "Kate Wilding");
+    }
+
+    #[test]
     fn test_find_by_alias() {
         let mut persons = Persons::new();
 
@@ -223,6 +275,31 @@ mod tests {
     }
 
     #[test]
+    fn test_number_aliases() {
+        let mut person = Person::new(1, "Tom Barnaby".to_string(), None);
+        person.add_alias("Tom");
+        person.add_alias("DCI Barnaby");
+
+        assert_eq!(person.number_aliases(), 2);
+    }
+
+    #[test]
+    fn test_aliases_iterator() {
+        let mut person = Person::new(1, "Tom Barnaby".to_string(), None);
+        person.add_alias("Tom");
+        person.add_alias("DCI Barnaby");
+
+        // Using HashSet as the order of the elements can be different
+        let aliases: HashSet<String> = person.aliases().cloned().collect();
+        let expected: HashSet<String> = vec!["Tom", "DCI Barnaby"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+
+        assert_eq!(aliases, expected);
+    }
+
+    #[test]
     fn test_persons_len() {
         let mut persons = Persons::new();
         assert_eq!(persons.len(), 0);
@@ -238,5 +315,39 @@ mod tests {
 
         persons.add(Person::new(2, "Joyce Barnaby".to_string(), None));
         assert_eq!(persons.len(), 2);
+    }
+
+    #[test]
+    fn test_find_mut() {
+        let mut persons = Persons::new();
+
+        let mut tom = Person::new(1, "Thomas Barnaby".to_string(), Some("DCI".to_string()));
+        tom.add_alias("Tom");
+        persons.add(tom);
+
+        // Find and modify the person
+        if let Some(person) = persons.find_mut("Tom") {
+            person.set_victim_status(true);
+        }
+
+        // Verify the modification
+        assert!(persons.find("Thomas Barnaby").unwrap().is_victim);
+    }
+
+    #[test]
+    fn test_add_returns_id() {
+        let mut persons = Persons::new();
+
+        let tom = Person::new(1, "Thomas Barnaby".to_string(), Some("DCI".to_string()));
+        let id = persons.add(tom);
+        assert_eq!(id, 1);
+
+        let joyce = Person::new(2, "Joyce Barnaby".to_string(), None);
+        let id = persons.add(joyce);
+        assert_eq!(id, 2);
+
+        // Verify both persons are in the collection
+        assert!(persons.find("Thomas Barnaby").is_some());
+        assert!(persons.find("Joyce Barnaby").is_some());
     }
 }

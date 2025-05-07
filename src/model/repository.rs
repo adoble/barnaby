@@ -30,9 +30,11 @@ impl Repository {
         self.highest_id
     }
 
-    pub fn add_person(&mut self, person: Person) {
-        self.persons.add(person);
+    pub fn add_person(&mut self, person: Person) -> u32 {
+        self.persons.add(person)
     }
+
+    // TODO change these so that they return the id as an EntityType
     pub fn add_location(&mut self, location: Location) {
         self.locations.add(location);
     }
