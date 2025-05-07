@@ -17,7 +17,7 @@ object_qualifier = {"w" | "W"}
 
 aka = {"aka"}
 
-alias = {person ~ " "* ~ aka ~ " "*  ~ person }
+alias = {person ~ "  " ~" "* ~ aka ~ "  " ~ " "*  ~ id }
 
 relation = {"  " ~ " "* ~ id ~ (" " ~ time)* ~ "  " ~ " "* }
 

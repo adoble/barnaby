@@ -17,7 +17,7 @@ In the TROY language:
 
 pv Richard Bayly  found   l Own Home
 
-pv Richard Bayly aka Richard
+pv Richard Bayly  aka  Richard
 
 pv Richard   diagnosed with  o malignant tumor
 

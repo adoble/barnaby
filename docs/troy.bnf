@@ -16,7 +16,7 @@
 
 <aka> ::= "aka"
 
-<alias>  ::= <person> " "* <aka>  " "*  <person>
+<alias>  ::= <person> "  "  " "* <aka>  "  " " "*  <person>
 
 <relation> ::= "  " " "* <id> (" " <time>)* "  " " "*
 
