@@ -3,7 +3,7 @@ word = { (ASCII_DIGIT| ASCII_ALPHA)+ }
 
 id = { word ~ (" " ~ word)*}
 
-person = { ("p" | "P") ~ person_qualifier? ~ " " ~ id}
+person = { ("p" | "P") ~ person_qualifier? ~ " "  ~ id ~ ("  " ~ " "* ~ alias)? } 
 
 person_qualifier  = { "v"  | "V" }
 
@@ -15,9 +15,7 @@ object  ={ ("o" | "O")  ~ object_qualifier? ~ " " ~ id }
 
 object_qualifier = {"w" | "W"}
 
-aka = {"aka"}
-
-alias = {person ~ "  " ~" "* ~ aka ~ "  " ~ " "*  ~ id }
+alias = { ("aka" | "alias")  ~ "  " ~ " "*  ~ id }
 
 relation = {"  " ~ " "* ~ id ~ (" " ~ time)* ~ "  " ~ " "* }
 
@@ -27,4 +25,4 @@ entity = { person | event | object | location }
 
 relationship = {entity ~ relation ~ entity}
 
-statement = { entity | relationship | alias }
+statement = { entity | relationship }

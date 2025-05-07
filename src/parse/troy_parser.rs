@@ -25,12 +25,7 @@ impl TroyParser {
 
         for pair in inner_rules {
             match pair.as_rule() {
-                Rule::person => println!("Person: {}", pair.as_str()),
-                Rule::event => println!("Event: {}", pair.as_str()),
-                Rule::location => println!("Location: {}", pair.as_str()),
-                Rule::object => println!("Object: {}", pair.as_str()),
                 Rule::entity => process_entity(pair, repository),
-                Rule::alias => process_alias(pair, repository),
                 Rule::relationship => println!("Relationship"),
                 _ => (),
             }
@@ -81,33 +76,20 @@ pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) {
     repository.add_event(event);
 }
 // Process an alias
-pub fn process_alias(pair: Pair<'_, Rule>, repository: &mut Repository) {
+pub fn process_alias(pair: Pair<'_, Rule>) -> Option<String> {
     println!("DEBUG: process_alias: {}", pair.as_str());
 
     let mut alias = None;
-    // let mut found_person: Option<&mut Person> = None;
-    // let mut found_person: Option<&mut Person> = None;
-    // let found_person_id: Option<u32> = None;
-    let mut person_id = 0;
 
     let inner_rules = pair.into_inner();
     for pair in inner_rules {
         match pair.as_rule() {
-            Rule::person => {
-                person_id = process_person(pair, repository);
-            }
             Rule::id => alias = Some(pair.as_str().to_string()),
             _ => (),
         }
     }
 
-    let person = repository.persons.get_mut(person_id);
-
-    match (person, alias) {
-        (Some(p), Some(a)) => p.add_alias(a),
-        (None, _) => println!("ERROR: Person not found"), // TODO: proper error handling
-        (_, None) => println!("ERROR: Alias is missing"), // TODO: proper error handling
-    }
+    alias
 }
 
 // Process a time
@@ -177,6 +159,7 @@ pub fn process_object(pair: Pair<'_, Rule>, repository: &mut Repository) {
 pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> u32 {
     let mut name = "";
     let mut person_qualifier = PersonQualifier::None;
+    let mut alias = None;
 
     //TODO
     let notes: Option<String> = None;
@@ -186,6 +169,8 @@ pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> u32 
         match pair.as_rule() {
             Rule::id => name = pair.as_str(),
             Rule::person_qualifier => person_qualifier = PersonQualifier::from_str(pair.as_str()),
+            Rule::alias => alias = process_alias(pair),
+
             _ => (),
         }
     }
@@ -200,6 +185,10 @@ pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> u32 
         PersonQualifier::Suspect => todo!(),
         PersonQualifier::Other(_) => todo!(),
     }
+
+    if let Some(alias_name) = alias {
+        person.add_alias(alias_name);
+    };
 
     repository.add_person(person)
 }
@@ -296,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_aka() {
+    fn test_parse_alias() {
         let mut repo: Repository = Repository::new();
         TroyParser::build_model("p Robert Bayly  aka  Bob", &mut repo);
 
