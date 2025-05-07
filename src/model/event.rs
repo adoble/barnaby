@@ -3,30 +3,44 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Event {
-    pub id: u32,
+    pub(super) id: u32,
     pub name: String,
     pub description: Option<String>,
     pub time: Option<Time>,
 }
 
 impl Event {
-    /// Creates a new Event instance.
-    ///             
-    /// # Arguments
-    /// * `id` - Unique identifier for the event
-    /// * `name` - Name of the event
-    /// * `description` - Optional description of the event
-    /// * `time` - Optional time of the event
-    ///
-    /// # Returns
-    /// A new Event instance
-    pub fn new(id: u32, name: String, description: Option<String>, time: Option<Time>) -> Self {
+    // Private constructor for Event. This is to restrict the creation of
+    // ids to the Repository.
+    fn new_with_id(id: u32, name: String, description: Option<String>, time: Option<Time>) -> Self {
         Event {
             id,
             name,
             description,
             time,
         }
+    }
+
+    /// Creates a new Event instance.
+    ///             
+    /// # Arguments
+    /// * `name` - Name of the event
+    /// * `description` - Optional description of the event
+    /// * `time` - Optional time of the event
+    ///
+    /// # Returns
+    /// A new Event instance
+    pub fn new(name: String, description: Option<String>, time: Option<Time>) -> Self {
+        Event {
+            id: 0,
+            name,
+            description,
+            time,
+        }
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
     }
 
     /// Sets the time of the event
@@ -59,8 +73,10 @@ impl Events {
     }
 
     /// Adds an event to the collection
-    pub fn add(&mut self, event: Event) {
+    pub fn add(&mut self, event: Event) -> u32 {
+        let id = event.id;
         self.0.insert(event.id, event);
+        id
     }
 
     /// Returns the number of events in the collection
@@ -85,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_new_event() {
-        let event = Event::new(
+        let event = Event::new_with_id(
             1,
             "Murder at Badger's Drift".to_string(),
             Some("Body found in the woods".to_string()),
@@ -97,7 +113,7 @@ mod tests {
         assert_eq!(event.time.unwrap().0, "yesterday morning");
 
         // Test event without time
-        let event2 = Event::new(2, "Suspicious Activity".to_string(), None, None);
+        let event2 = Event::new_with_id(2, "Suspicious Activity".to_string(), None, None);
 
         assert!(event2.time.is_none());
         assert_eq!(event2.time_as_str(), "");
@@ -107,7 +123,7 @@ mod tests {
     fn test_events_collection() {
         let mut events = Events::new();
 
-        let murder = Event::new(
+        let murder = Event::new_with_id(
             1,
             "Murder at Badger's Drift".to_string(),
             Some("Body found in the woods".to_string()),
@@ -128,7 +144,7 @@ mod tests {
         assert_eq!(events.len(), 0);
         assert!(events.is_empty());
 
-        let murder = Event::new(
+        let murder = Event::new_with_id(
             1,
             "Murder at Badger's Drift".to_string(),
             Some("Body found in the woods".to_string()),

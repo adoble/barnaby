@@ -41,20 +41,33 @@ impl Repository {
         }
     }
 
-    // pub fn add_person(&mut self, person: Person) -> u32 {
-    //     self.persons.add(person)
-    // }
+    pub fn add_location(&mut self, mut location: Location) -> u32 {
+        if let Some(existing_location) = self.locations.find(&location.name) {
+            existing_location.id()
+        } else {
+            location.id = self.new_id();
+            self.locations.add(location)
+        }
+    }
 
-    // TODO change these so that they return the id as an EntityType
-    pub fn add_location(&mut self, location: Location) {
-        self.locations.add(location);
+    pub fn add_event(&mut self, mut event: Event) -> u32 {
+        if let Some(existing_event) = self.events.find(&event.name) {
+            existing_event.id()
+        } else {
+            event.id = self.new_id();
+            self.events.add(event)
+        }
     }
-    pub fn add_event(&mut self, event: Event) {
-        self.events.add(event);
+
+    pub fn add_object(&mut self, mut object: Object) -> u32 {
+        if let Some(existing_object) = self.objects.find(&object.name) {
+            existing_object.id()
+        } else {
+            object.id = self.new_id();
+            self.objects.add(object)
+        }
     }
-    pub fn add_object(&mut self, object: Object) {
-        self.objects.add(object);
-    }
+
     pub fn add_relationship(&mut self, relationship: Relationship) {
         self.relationships.add(relationship);
     }
@@ -89,5 +102,24 @@ mod tests {
         assert!(repo.persons.find("Thomas Barnaby").is_some());
         assert!(repo.persons.find("Joyce Barnaby").is_some());
         assert_eq!(repo.persons.len(), 2); // Only two people should be stored
+    }
+
+    #[test]
+    fn test_add_location() {
+        let mut repo = Repository::new();
+
+        let vicarage = Location::new("St. Michael's Vicarage".to_string(), None);
+        let id1 = repo.add_location(vicarage);
+        assert_eq!(id1, 1);
+
+        // Try to add same location again
+        let vicarage_again = Location::new(
+            "St. Michael's Vicarage".to_string(),
+            Some("Where the murder weapon was found".to_string()),
+        );
+        let id2 = repo.add_location(vicarage_again);
+        assert_eq!(id1, id2); // Should return same ID
+
+        assert_eq!(repo.locations.len(), 1); // Only one location stored
     }
 }

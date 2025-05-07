@@ -13,20 +13,32 @@ pub enum ObjectType {
 
 #[derive(Debug, Clone)]
 pub struct Object {
-    pub id: u32,
+    pub(super) id: u32,
     pub name: String,
     pub description: Option<String>,
     pub object_type: ObjectType,
 }
 
 impl Object {
-    pub fn new(id: u32, name: String, description: Option<String>) -> Self {
+    pub fn new_with_id(id: u32, name: String, description: Option<String>) -> Self {
         Object {
             id,
             name,
             description,
             object_type: ObjectType::Generic,
         }
+    }
+    pub fn new(name: String, description: Option<String>) -> Self {
+        Object {
+            id: 0, // Placeholder for ID, to be set later
+            name,
+            description,
+            object_type: ObjectType::Generic,
+        }
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
     }
 
     pub fn set_type(&mut self, object_type: ObjectType) {
@@ -46,8 +58,10 @@ impl Objects {
         Objects(HashMap::new())
     }
 
-    pub fn add(&mut self, object: Object) {
+    pub fn add(&mut self, object: Object) -> u32 {
+        let id = object.id;
         self.0.insert(object.id, object);
+        id
     }
 
     /// Returns the number of objects in the collection
@@ -72,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_object_types() {
-        let mut sword = Object::new(
+        let mut sword = Object::new_with_id(
             1,
             "Indian Sword".to_string(),
             Some("Stolen from vicarage".to_string()),
@@ -83,7 +97,7 @@ mod tests {
         sword.set_type(ObjectType::Weapon);
         assert!(sword.is_weapon());
 
-        let vase = Object::new(2, "Ming Vase".to_string(), None);
+        let vase = Object::new_with_id(2, "Ming Vase".to_string(), None);
         assert!(!vase.is_weapon());
     }
 
@@ -91,7 +105,7 @@ mod tests {
     fn test_objects_collection() {
         let mut objects = Objects::new();
 
-        let sword = Object::new(
+        let sword = Object::new_with_id(
             1,
             "Indian Sword".to_string(),
             Some("Murder weapon stolen from vicarage".to_string()),
@@ -109,14 +123,14 @@ mod tests {
     fn test_multiple_objects() {
         let mut objects = Objects::new();
 
-        let mut sword = Object::new(
+        let mut sword = Object::new_with_id(
             1,
             "Indian Sword".to_string(),
             Some("Murder weapon".to_string()),
         );
         sword.set_type(ObjectType::Weapon);
 
-        let arrow = Object::new(
+        let arrow = Object::new_with_id(
             2,
             "Arrow".to_string(),
             Some("Found at village fete".to_string()),
@@ -140,7 +154,7 @@ mod tests {
         assert_eq!(objects.len(), 0);
         assert!(objects.is_empty());
 
-        let sword = Object::new(
+        let sword = Object::new_with_id(
             1,
             "Indian Sword".to_string(),
             Some("Murder weapon".to_string()),

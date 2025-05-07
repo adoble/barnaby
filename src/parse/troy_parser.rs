@@ -4,7 +4,8 @@ use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
 use crate::model::{
-    event::Event, location::Location, person::Person, repository::Repository, time::Time,
+    event::Event, location::Location, object::Object, person::Person, repository::Repository,
+    time::Time,
 };
 
 use super::object_qualifier::ObjectQualifier;
@@ -28,8 +29,8 @@ impl TroyParser {
                 Rule::event => println!("Event: {}", pair.as_str()),
                 Rule::location => println!("Location: {}", pair.as_str()),
                 Rule::object => println!("Object: {}", pair.as_str()),
-                Rule::alias => process_alias(pair, repository),
                 Rule::entity => process_entity(pair, repository),
+                Rule::alias => process_alias(pair, repository),
                 Rule::relationship => println!("Relationship"),
                 _ => (),
             }
@@ -49,7 +50,7 @@ pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) {
             Rule::event => process_event(pair, repository),
             Rule::location => process_location(pair, repository),
             Rule::object => process_object(pair, repository),
-            // Rule::alias => println!("Alias"),
+            //Rule::alias => process_alias(pair, repository),
             // Rule::entity => process_entity(pair),
             // Rule::relationship => println!("Relationship"),
             _ => (), // TODO change the type of an id so none is possible
@@ -74,9 +75,8 @@ pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) {
             _ => println!("Other: {}", pair.as_str()),
         }
     }
-    let event_id = repository.new_id();
 
-    let event = Event::new(event_id, name.to_string(), description, time);
+    let event = Event::new(name.to_string(), description, time);
 
     repository.add_event(event);
 }
@@ -86,35 +86,28 @@ pub fn process_alias(pair: Pair<'_, Rule>, repository: &mut Repository) {
 
     let mut alias = None;
     // let mut found_person: Option<&mut Person> = None;
-    let mut found_person: Option<&mut Person> = None;
-    let found_person_id: Option<u32> = None;
+    // let mut found_person: Option<&mut Person> = None;
+    // let found_person_id: Option<u32> = None;
+    let mut person_id = 0;
 
     let inner_rules = pair.into_inner();
     for pair in inner_rules {
         match pair.as_rule() {
             Rule::person => {
-                // found_person = repository.persons.find_mut(pair.as_str());
-                found_person = repository.persons.find_mut(pair.as_str());
-
-                if found_person.is_some() {
-                } else {
-                    // Add a new person
-                    process_person(pair, repository);
-                }
+                person_id = process_person(pair, repository);
             }
             Rule::id => alias = Some(pair.as_str().to_string()),
             _ => (),
         }
     }
 
-    //repository.persons.get_mut(id)
+    let person = repository.persons.get_mut(person_id);
 
-    // if found_person.is_some() {
-    //     let person = found_person.unwrap();
-    //     person.add_alias(alias.unwrap());
-    // } else {
-    //     println!("ERROR: Person not found"); // TODO proper error handling
-    // }
+    match (person, alias) {
+        (Some(p), Some(a)) => p.add_alias(a),
+        (None, _) => println!("ERROR: Person not found"), // TODO: proper error handling
+        (_, None) => println!("ERROR: Alias is missing"), // TODO: proper error handling
+    }
 }
 
 // Process a time
@@ -147,8 +140,7 @@ pub fn process_location(pair: Pair<'_, Rule>, repository: &mut Repository) {
             _ => (),
         }
     }
-    let location_id = repository.new_id();
-    let location = Location::new(location_id, name.to_string(), description);
+    let location = Location::new(name.to_string(), description);
 
     repository.add_location(location);
 }
@@ -169,8 +161,7 @@ pub fn process_object(pair: Pair<'_, Rule>, repository: &mut Repository) {
             _ => (),
         }
     }
-    let object_id = repository.new_id();
-    let mut object = crate::model::object::Object::new(object_id, name.to_string(), description);
+    let mut object = Object::new(name.to_string(), description);
 
     match object_qualifier {
         ObjectQualifier::None => (),
@@ -306,7 +297,7 @@ mod tests {
 
     #[test]
     fn test_parse_aka() {
-        let mut repo = Repository::new();
+        let mut repo: Repository = Repository::new();
         TroyParser::build_model("p Robert Bayly  aka  Bob", &mut repo);
 
         assert_eq!(repo.persons.len(), 1);
