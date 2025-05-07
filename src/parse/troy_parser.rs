@@ -198,8 +198,8 @@ pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> u32 
             _ => (),
         }
     }
-    let person_id = repository.new_id();
-    let mut person = Person::new(person_id, name.to_string(), notes);
+    //let person_id = repository.new_id();
+    let mut person = Person::new(name.to_string(), notes);
 
     // TODO add other qualifiers to Person in the grammer
     match person_qualifier {
