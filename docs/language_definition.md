@@ -1,5 +1,7 @@
 # Overview of the TROY Language 
 
+TODO update this with the actual version of the language
+
 The `TROY` ( **T**extual **R**epresentation **O**f crime stor**Y**)) is based on the [POLE model](https://www.npcc.police.uk/SysSiteAssets/media/downloads/publications/disclosure-logs/dei-coordination-committee/2023/274-2023-pole-data-standards-catalogue-v1.1-1-1.pdf) [¹]. 
 
 The TROY language is designed so that ot can be quickly typed in whilst watching (or reading) a crime story. As such, keywords are very short and relationships are delimited with two or more spaces (no need to type in a special character).
