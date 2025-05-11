@@ -3,6 +3,7 @@ use super::location::{Location, Locations};
 use super::object::{Object, Objects};
 use super::person::{Person, Persons};
 use super::relationship::{Relationship, Relationships};
+use super::EntityType;
 
 pub struct Repository {
     pub relationships: Relationships,
@@ -30,42 +31,51 @@ impl Repository {
         self.highest_id
     }
 
+    // TODO  the following can be made more generic ...
+
     /// Add a person to the repository. If a person with the same name exists,
     /// return their id, otherwise add the new person with a new id.
-    pub fn add_person(&mut self, mut person: Person) -> u32 {
-        if let Some(existing_person) = self.persons.find(&person.name) {
+    pub fn add_person(&mut self, mut person: Person) -> EntityType {
+        let raw_id = if let Some(existing_person) = self.persons.find(&person.name) {
             existing_person.id()
         } else {
             person.id = self.new_id();
             self.persons.add(person)
-        }
+        };
+
+        EntityType::Person(raw_id)
     }
 
-    pub fn add_location(&mut self, mut location: Location) -> u32 {
-        if let Some(existing_location) = self.locations.find(&location.name) {
+    pub fn add_location(&mut self, mut location: Location) -> EntityType {
+        let raw_id = if let Some(existing_location) = self.locations.find(&location.name) {
             existing_location.id()
         } else {
             location.id = self.new_id();
             self.locations.add(location)
-        }
+        };
+        EntityType::Location(raw_id)
     }
 
-    pub fn add_event(&mut self, mut event: Event) -> u32 {
-        if let Some(existing_event) = self.events.find(&event.name) {
+    pub fn add_event(&mut self, mut event: Event) -> EntityType {
+        let raw_id = if let Some(existing_event) = self.events.find(&event.name) {
             existing_event.id()
         } else {
             event.id = self.new_id();
             self.events.add(event)
-        }
+        };
+
+        EntityType::Event(raw_id)
     }
 
-    pub fn add_object(&mut self, mut object: Object) -> u32 {
-        if let Some(existing_object) = self.objects.find(&object.name) {
+    pub fn add_object(&mut self, mut object: Object) -> EntityType {
+        let raw_id = if let Some(existing_object) = self.objects.find(&object.name) {
             existing_object.id()
         } else {
             object.id = self.new_id();
             self.objects.add(object)
-        }
+        };
+
+        EntityType::Object(raw_id)
     }
 
     pub fn add_relationship(&mut self, relationship: Relationship) {
@@ -83,7 +93,7 @@ mod tests {
         let tom = Person::new("Thomas Barnaby".to_string(), Some("DCI".to_string()));
 
         let id1 = repo.add_person(tom);
-        assert_eq!(id1, 1);
+        assert_eq!(id1, EntityType::Person(1));
 
         // Try to add same person again
         let tom_again = Person::new(
@@ -110,7 +120,7 @@ mod tests {
 
         let vicarage = Location::new("St. Michael's Vicarage".to_string(), None);
         let id1 = repo.add_location(vicarage);
-        assert_eq!(id1, 1);
+        assert_eq!(id1, EntityType::Location(1));
 
         // Try to add same location again
         let vicarage_again = Location::new(

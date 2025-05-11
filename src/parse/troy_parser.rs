@@ -3,10 +3,8 @@
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
-use crate::model::{
-    event::Event, location::Location, object::Object, person::Person, repository::Repository,
-    time::Time,
-};
+use crate::model::relationship::Relationship;
+use crate::model::{EntityType, Event, Location, Object, Person, Repository, Time};
 
 use super::object_qualifier::ObjectQualifier;
 use super::person_qualifier::PersonQualifier;
@@ -17,6 +15,8 @@ pub struct TroyParser;
 
 impl TroyParser {
     pub fn build_model(statement: &str, repository: &mut Repository) {
+        let mut source_entity_id = EntityType::Unknown;
+
         let mut parse = TroyParser::parse(Rule::statement, statement).expect("unsuccessful parse");
 
         let pair: Pair<'_, Rule> = parse.next().unwrap();
@@ -25,36 +25,87 @@ impl TroyParser {
 
         for pair in inner_rules {
             match pair.as_rule() {
-                Rule::entity => process_entity(pair, repository),
-                Rule::relationship => println!("Relationship"),
+                Rule::relation => process_relationship(source_entity_id, pair, repository),
+                Rule::entity => source_entity_id = process_entity(pair, repository),
                 _ => (),
             }
         }
     }
 }
 
-pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) {
+pub fn process_relationship(
+    source_entity_id: EntityType,
+    pair: Pair<'_, Rule>,
+    repository: &mut Repository,
+) {
+    assert!(source_entity_id != EntityType::Unknown);
+
+    let mut target_entity_id = EntityType::Unknown;
+    let mut link_id = "".to_string();
+    let mut times = Vec::new();
+
     let inner_rules = pair.into_inner();
 
     for pair in inner_rules {
         match pair.as_rule() {
-            Rule::person => {
-                // TODO  alle process_* function should return EntityType(id)
-                let _ = process_person(pair, repository);
-            }
+            Rule::link => (link_id, times) = process_link(pair),
+            Rule::entity => target_entity_id = process_entity(pair, repository),
+            _ => (),
+        }
+    }
+
+    let relationship = Relationship {
+        from: source_entity_id,
+        to: target_entity_id,
+        relationship_type: link_id.to_string(),
+        time: times,
+        notes: None,
+    };
+
+    repository.add_relationship(relationship);
+}
+
+// Process link
+pub fn process_link(pair: Pair<'_, Rule>) -> (String, Vec<Time>) {
+    let mut link_id = "";
+    let mut times: Vec<Time> = Vec::new();
+
+    let inner_rules = pair.into_inner();
+    for pair in inner_rules {
+        match pair.as_rule() {
+            Rule::id => link_id = pair.as_str(),
+            Rule::time => times.push(process_time(pair).unwrap()),
+            _ => (),
+        }
+    }
+
+    (link_id.to_string(), times)
+}
+
+// Process an entity
+pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) -> EntityType {
+    let mut entity_id = EntityType::Unknown;
+
+    let inner_rules = pair.into_inner();
+
+    for pair in inner_rules {
+        entity_id = match pair.as_rule() {
+            Rule::person => process_person(pair, repository),
             Rule::event => process_event(pair, repository),
             Rule::location => process_location(pair, repository),
             Rule::object => process_object(pair, repository),
             //Rule::alias => process_alias(pair, repository),
             // Rule::entity => process_entity(pair),
             // Rule::relationship => println!("Relationship"),
-            _ => (), // TODO change the type of an id so none is possible
+            _ => EntityType::Unknown, // TODO this is an error condition
         };
     }
+
+    entity_id
 }
 
 // Process and event
-pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) {
+pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) -> EntityType {
     let mut name = "";
 
     let mut time: Option<Time> = None;
@@ -73,7 +124,7 @@ pub fn process_event(pair: Pair<'_, Rule>, repository: &mut Repository) {
 
     let event = Event::new(name.to_string(), description, time);
 
-    repository.add_event(event);
+    repository.add_event(event)
 }
 // Process an alias
 pub fn process_alias(pair: Pair<'_, Rule>) -> Option<String> {
@@ -109,7 +160,7 @@ pub fn process_time(pair: Pair<'_, Rule>) -> Option<Time> {
 }
 
 // Process a location
-pub fn process_location(pair: Pair<'_, Rule>, repository: &mut Repository) {
+pub fn process_location(pair: Pair<'_, Rule>, repository: &mut Repository) -> EntityType {
     let mut name = "";
 
     // TODO
@@ -124,11 +175,11 @@ pub fn process_location(pair: Pair<'_, Rule>, repository: &mut Repository) {
     }
     let location = Location::new(name.to_string(), description);
 
-    repository.add_location(location);
+    repository.add_location(location)
 }
 
 // Process an object
-pub fn process_object(pair: Pair<'_, Rule>, repository: &mut Repository) {
+pub fn process_object(pair: Pair<'_, Rule>, repository: &mut Repository) -> EntityType {
     let mut name = "";
     let mut object_qualifier = ObjectQualifier::None;
 
@@ -153,10 +204,10 @@ pub fn process_object(pair: Pair<'_, Rule>, repository: &mut Repository) {
 
     // TODO ObjectType and ObjectQualifier seem to be redundant
 
-    repository.add_object(object);
+    repository.add_object(object)
 }
 
-pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> u32 {
+pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> EntityType {
     let mut name = "";
     let mut person_qualifier = PersonQualifier::None;
     let mut alias = None;
@@ -195,7 +246,11 @@ pub fn process_person(pair: Pair<'_, Rule>, repository: &mut Repository) -> u32 
 
 #[cfg(test)]
 mod tests {
+    use crate::model::relationship::Relationship;
+
     use super::*;
+
+    use crate::model::EntityType;
 
     #[test]
     fn test_parse_person() {
@@ -301,5 +356,103 @@ mod tests {
 
         let aliases: Vec<String> = person.aliases().map(|s| s.to_string()).collect();
         assert_eq!(aliases, vec!["Bob"]);
+    }
+
+    #[test]
+    fn test_parse_relationships() {
+        let mut repo: Repository = Repository::new();
+        TroyParser::build_model("pv Robert Bayly   body found at   l Quarry", &mut repo);
+
+        assert_eq!(repo.persons.len(), 1);
+        assert_eq!(repo.locations.len(), 1);
+        assert_eq!(repo.relationships.len(), 1);
+
+        let person = repo.persons.find("Robert Bayly");
+        assert!(person.is_some());
+
+        let person = person.unwrap();
+        assert_eq!(person.name, "Robert Bayly");
+        let person_id = person.id();
+
+        let location = repo.locations.find("Quarry");
+        assert!(location.is_some());
+        let location_id = location.unwrap().id();
+
+        let relationships: Vec<&Relationship> = repo.relationships.find(
+            EntityType::Person(person_id),
+            EntityType::Location(location_id),
+        );
+        assert!(relationships.len() == 1);
+
+        let relationship = relationships[0];
+        assert_eq!(relationship.relationship_type, "body found at");
+
+        // Try a different order of the relationship entities
+        let relationships: Vec<&Relationship> = repo.relationships.find(
+            EntityType::Location(location_id),
+            EntityType::Person(person_id),
+        );
+        assert!(relationships.len() == 1);
+
+        let relationship = relationships[0];
+        assert_eq!(relationship.relationship_type, "body found at");
+    }
+
+    #[test]
+    fn test_parse_many_relationships() {
+        let mut repo: Repository = Repository::new();
+        TroyParser::build_model("pv Robert Bayly   body found at   l Quarry", &mut repo);
+        TroyParser::build_model("pv Robert Bayly   owner   l Quarry", &mut repo);
+
+        assert_eq!(repo.persons.len(), 1);
+        assert_eq!(repo.locations.len(), 1);
+        assert_eq!(repo.relationships.len(), 2);
+
+        let person = repo.persons.find("Robert Bayly");
+        assert!(person.is_some());
+
+        let person_id = person.unwrap().id();
+
+        let location = repo.locations.find("Quarry");
+        assert!(location.is_some());
+        let location_id = location.unwrap().id();
+
+        let relationships: Vec<&Relationship> = repo.relationships.find(
+            EntityType::Person(person_id),
+            EntityType::Location(location_id),
+        );
+        assert!(relationships.len() == 2);
+
+        let relationship = relationships[0];
+        assert_eq!(relationship.relationship_type, "body found at");
+
+        let relationship = relationships[1];
+        assert_eq!(relationship.relationship_type, "owner");
+    }
+
+    #[test]
+    fn test_relationship_times() {
+        let mut repo: Repository = Repository::new();
+        TroyParser::build_model(
+            "pv Robert Bayly   married  t from 1984   t until 1999   p Rebecca Bayly",
+            &mut repo,
+        );
+
+        let robert = repo.persons.find("Robert Bayly").unwrap();
+
+        let rebecca = repo.persons.find("Rebecca Bayly").unwrap();
+
+        let relationships: Vec<&Relationship> = repo.relationships.find(
+            EntityType::Person(robert.id()),
+            EntityType::Person(rebecca.id()),
+        );
+        assert!(relationships.len() == 1);
+
+        assert_eq!(relationships[0].time.len(), 2);
+
+        let times: Vec<String> = relationships[0].time.iter().map(|t| t.0.clone()).collect();
+
+        assert!(times.contains(&"from 1984".to_string()));
+        assert!(times.contains(&"until 1999".to_string()));
     }
 }

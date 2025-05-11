@@ -1,4 +1,3 @@
-
 word = { (ASCII_DIGIT| ASCII_ALPHA)+ }
 
 id = { word ~ (" " ~ word)*}
@@ -11,18 +10,22 @@ event = { ("e" | "E") ~ " "  ~ id ~ ("  " ~ time)* }
 
 location  = { ("l" | "L") ~ " " ~  id }
 
-object  ={ ("o" | "O")  ~ object_qualifier? ~ " " ~ id }
+object = { ("o" | "O" )  ~object_qualifier? ~ " "  ~ id}
 
 object_qualifier = {"w" | "W"}
 
 alias = { ("aka" | "alias")  ~ "  " ~ " "*  ~ id }
 
-relation = {"  " ~ " "* ~ id ~ (" " ~ time)* ~ "  " ~ " "* }
+link = {"  " ~ " "* ~ id ~ ("  "  ~ " "* ~ time)* ~ "  " ~ " "* }
 
 time = { "t" ~ " " ~ id}
 
 entity = { person | event | object | location }
 
-relationship = {entity ~ relation ~ entity}
+//relationship = {entity ~ relation ~ entity}
 
-statement = { entity | relationship }
+// statement = { entity | relationship }
+
+relation = {link ~ entity}
+
+statement = { entity ~ (relation)? }

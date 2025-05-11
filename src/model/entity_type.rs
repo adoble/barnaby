@@ -4,4 +4,5 @@ pub enum EntityType {
     Object(u32),
     Location(u32),
     Event(u32),
+    Unknown,
 }
