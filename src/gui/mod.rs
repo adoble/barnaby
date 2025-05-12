@@ -40,7 +40,8 @@ impl eframe::App for BarnabyApp {
                     // Add error reporting section with full width
                     ui.separator();
                     ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
-                        ui.set_min_height(100.0);
+                        let line_height = ui.text_style_height(&egui::TextStyle::Body);
+                        ui.set_min_height(4.0 * line_height); // Force 4 lines height
                         ui.heading("Errors");
                         let error_text = if self.error_message.is_empty() {
                             egui::RichText::new("No errors").color(egui::Color32::GREEN)
