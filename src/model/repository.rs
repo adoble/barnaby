@@ -202,6 +202,8 @@ impl Repository {
 
 #[cfg(test)]
 mod tests {
+    use crate::model::Time;
+
     use super::*;
 
     #[test]
