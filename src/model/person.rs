@@ -81,7 +81,7 @@ impl Person {
 }
 
 #[derive(Debug, Default)]
-pub struct Persons(pub HashMap<u32, Person>);
+pub struct Persons(HashMap<u32, Person>);
 
 impl Persons {
     /// Creates a new empty Persons collection
@@ -100,6 +100,11 @@ impl Persons {
         let id = person.id;
         self.0.insert(person.id, person);
         id
+    }
+
+    /// Get an immutable person from the identity
+    pub fn get(&self, id: u32) -> Option<&Person> {
+        self.0.get(&id)
     }
 
     /// Gets a mutable person by id
@@ -131,6 +136,11 @@ impl Persons {
     /// Returns true if the collection contains no persons
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// Returns an iterator over the persons in the collection
+    pub fn iter(&self) -> impl Iterator<Item = &Person> {
+        self.0.values()
     }
 }
 

@@ -64,7 +64,7 @@ impl Event {
 }
 
 #[derive(Debug, Default)]
-pub struct Events(pub HashMap<u32, Event>);
+pub struct Events(HashMap<u32, Event>);
 
 impl Events {
     /// Creates a new empty Events collection
@@ -89,9 +89,19 @@ impl Events {
         self.0.is_empty()
     }
 
+    /// Returns an immutable event by id
+    pub fn get(&self, id: u32) -> Option<&Event> {
+        self.0.get(&id)
+    }
+
     /// Finds an event by name
     pub fn find(&self, name: &str) -> Option<&Event> {
         self.0.values().find(|event| event.name == name)
+    }
+
+    /// Returns an iterator over the locations in the collection
+    pub fn iter(&self) -> impl Iterator<Item = &Event> {
+        self.0.values()
     }
 }
 

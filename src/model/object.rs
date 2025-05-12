@@ -74,9 +74,19 @@ impl Objects {
         self.0.len() == 0
     }
 
+    /// Returns an immutable object by id
+    pub fn get(&self, id: u32) -> Option<&Object> {
+        self.0.get(&id)
+    }
+
     /// Finds an object by name
     pub fn find(&self, name: &str) -> Option<&Object> {
         self.0.values().find(|obj| obj.name == name)
+    }
+
+    /// Returns an iterator over the objects in the collection
+    pub fn iter(&self) -> impl Iterator<Item = &Object> {
+        self.0.values()
     }
 }
 
@@ -171,5 +181,30 @@ mod tests {
 
         // Test non-existent object
         assert!(objects.find("Garden Shears").is_none());
+    }
+
+    #[test]
+    fn test_objects_iterator() {
+        let mut objects = Objects::new();
+
+        let sword = Object::new_with_id(
+            1,
+            "Indian Sword".to_string(),
+            Some("Murder weapon".to_string()),
+        );
+        let arrow = Object::new_with_id(
+            2,
+            "Arrow".to_string(),
+            Some("Found at village fete".to_string()),
+        );
+
+        objects.add(sword);
+        objects.add(arrow);
+
+        let names: Vec<&str> = objects.iter().map(|obj| obj.name.as_str()).collect();
+
+        assert_eq!(names.len(), 2);
+        assert!(names.contains(&"Indian Sword"));
+        assert!(names.contains(&"Arrow"));
     }
 }

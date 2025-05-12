@@ -43,6 +43,11 @@ impl Relationships {
         self.0.len()
     }
 
+    /// Returns an iterator over the relationship in the collection
+    pub fn iter(&self) -> impl Iterator<Item = &Relationship> {
+        self.0.iter()
+    }
+
     /// Find all relationships between two entities.
     /// The order of the entities does not matter.
     ///
