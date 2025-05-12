@@ -40,9 +40,9 @@ impl eframe::App for BarnabyApp {
                 if code != self.code {
                     self.code = code;
                     // Parse TROY code and update repository
-
                     if self.code.ends_with("\n\n") {
                         TroyParser::build_model(&self.code, &mut self.repository);
+                        println!("{}", self.repository.display_state()); // TODO  debug
                     }
                 }
             });

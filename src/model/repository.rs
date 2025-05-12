@@ -3,6 +3,7 @@ use super::location::{Location, Locations};
 use super::object::{Object, Objects};
 use super::person::{Person, Persons};
 use super::relationship::{Relationship, Relationships};
+use super::time::Time;
 use super::EntityType;
 
 pub struct Repository {
@@ -81,6 +82,122 @@ impl Repository {
     pub fn add_relationship(&mut self, relationship: Relationship) {
         self.relationships.add(relationship);
     }
+
+    /// Returns a formatted string representing the current state of the repository
+    pub fn display_state(&self) -> String {
+        let mut output = String::new();
+
+        output.push_str("REPOSITORY --> ");
+
+        // Display Persons
+        output.push_str("PERSONS:\n");
+        for person in self.persons.iter() {
+            output.push_str(&format!("  [{}] {}", person.id(), person.name));
+            if let Some(desc) = &person.description {
+                output.push_str(&format!(" ({})", desc));
+            }
+            if !person.aliases.is_empty() {
+                output.push_str(&format!(" aka: {:?}", person.aliases));
+            }
+            output.push('\n');
+        }
+
+        // Display Locations
+        output.push_str("\nLOCATIONS:\n");
+        for location in self.locations.iter() {
+            output.push_str(&format!("  [{}] {}", location.id(), location.name));
+            if let Some(desc) = &location.description {
+                output.push_str(&format!(" ({})", desc));
+            }
+            output.push('\n');
+        }
+
+        // Display Objects
+        output.push_str("\nOBJECTS:\n");
+        for object in self.objects.iter() {
+            output.push_str(&format!("  [{}] {}", object.id(), object.name));
+            if let Some(desc) = &object.description {
+                output.push_str(&format!(" ({})", desc));
+            }
+            output.push('\n');
+        }
+
+        // Display Events
+        output.push_str("\nEVENTS:\n");
+        for event in self.events.iter() {
+            output.push_str(&format!("  [{}] {}", event.id(), event.name));
+            if let Some(desc) = &event.description {
+                output.push_str(&format!(" ({})", desc));
+            }
+            if let Some(time) = &event.time {
+                output.push_str(&format!(" at {}", time.0));
+            }
+            output.push('\n');
+        }
+
+        // Display Relationships
+        output.push_str("\nRELATIONSHIPS:\n");
+        for rel in self.relationships.iter() {
+            output.push_str(&format!(
+                "  {} → {} : {}",
+                self.entity_to_string(&rel.from),
+                self.entity_to_string(&rel.to),
+                rel.relationship_type
+            ));
+            if !rel.time.is_empty() {
+                output.push_str(&format!(
+                    " ({})",
+                    rel.time
+                        .iter()
+                        .map(|t| t.0.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+            }
+            if let Some(notes) = &rel.notes {
+                output.push_str(&format!(" [{}]", notes));
+            }
+            output.push('\n');
+        }
+
+        output
+    }
+
+    /// TODO use the Display trait for this
+    /// Helper function to convert EntityType to string representation
+    fn entity_to_string(&self, entity: &EntityType) -> String {
+        match entity {
+            EntityType::Person(id) => {
+                if let Some(person) = self.persons.get(*id) {
+                    format!("Person({}:{})", id, person.name)
+                } else {
+                    format!("Person({})", id)
+                }
+            }
+            EntityType::Location(id) => {
+                if let Some(location) = self.locations.get(*id) {
+                    format!("Location({}:{})", id, location.name)
+                } else {
+                    format!("Location({})", id)
+                }
+            }
+            EntityType::Event(id) => {
+                if let Some(event) = self.events.get(*id) {
+                    format!("Event({}:{})", id, event.name)
+                } else {
+                    format!("Event({})", id)
+                }
+            }
+            EntityType::Object(id) => {
+                if let Some(object) = self.objects.get(*id) {
+                    format!("Object({}:{})", id, object.name)
+                } else {
+                    format!("Object({})", id)
+                }
+            }
+            EntityType::Unknown => "Unknown".to_string(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -131,5 +248,41 @@ mod tests {
         assert_eq!(id1, id2); // Should return same ID
 
         assert_eq!(repo.locations.len(), 1); // Only one location stored
+    }
+
+    #[test]
+    fn test_display_state() {
+        let mut repo = Repository::new();
+
+        // Add test data
+        let tom = Person::new("Thomas Barnaby".to_string(), Some("DCI".to_string()));
+        let id1 = repo.add_person(tom);
+
+        let vicarage = Location::new("St. Michael's Vicarage".to_string(), None);
+        let id2 = repo.add_location(vicarage);
+
+        let sword = Object::new(
+            "Indian Sword".to_string(),
+            Some("Decorative weapon".to_string()),
+        );
+        let _id3 = repo.add_object(sword);
+
+        repo.add_relationship(Relationship {
+            from: id1,
+            to: id2,
+            relationship_type: "investigating at".to_string(),
+            time: vec![Time("morning".to_string())],
+            notes: Some("Found murder weapon".to_string()),
+        });
+
+        let state = repo.display_state();
+
+        // Basic verification
+        assert!(state.contains("Thomas Barnaby"));
+        assert!(state.contains("St. Michael's Vicarage"));
+        assert!(state.contains("Indian Sword"));
+        assert!(state.contains("investigating at"));
+        assert!(state.contains("morning"));
+        assert!(state.contains("Found murder weapon"));
     }
 }

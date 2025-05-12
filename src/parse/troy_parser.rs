@@ -15,6 +15,8 @@ pub struct TroyParser;
 
 impl TroyParser {
     pub fn build_model(statement: &str, repository: &mut Repository) {
+        println!("DEBUG: statement=  {}", statement);
+
         let mut source_entity_id = EntityType::Unknown;
 
         let mut parse = TroyParser::parse(Rule::statement, statement).expect("unsuccessful parse");
