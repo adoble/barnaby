@@ -1,4 +1,4 @@
-use crate::model::repository::Repository;
+use crate::model::repository::{self, Repository};
 use crate::parse::troy_parser::TroyParser;
 use eframe::egui;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
@@ -6,13 +6,15 @@ use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 pub struct BarnabyApp {
     code: String,
     repository: Repository,
+    error_message: String, // Add this field
 }
 
 impl BarnabyApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             code: String::new(),
             repository: Repository::new(),
+            error_message: String::new(),
         }
     }
 }
@@ -20,36 +22,59 @@ impl BarnabyApp {
 impl eframe::App for BarnabyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::left("code_panel")
-            //.resizable(true)
             .exact_width(400.0)
-            //.default_width(400.0)
             .show(ctx, |ui| {
-                ui.heading("TROY Editor");
-                ui.label("Enter the story");
+                ui.vertical(|ui| {
+                    ui.heading("TROY Editor");
+                    ui.label("Enter the story");
 
-                let mut editor = CodeEditor::default()
-                    .with_syntax(Syntax::rust()) // TODO: Create TROY syntax
-                    .with_theme(ColorTheme::GITHUB_DARK)
-                    .with_rows(20)
-                    .with_fontsize(12.0);
-                //.with_font(egui::TextStyle::Monospace);
+                    let mut editor = CodeEditor::default()
+                        .with_syntax(Syntax::rust())
+                        .with_theme(ColorTheme::GITHUB_DARK)
+                        .with_rows(20)
+                        .with_fontsize(12.0);
 
-                let mut code = self.code.clone();
-                editor.show(ui, &mut code);
+                    let mut code = self.code.clone();
+                    editor.show(ui, &mut code);
 
-                if code != self.code {
-                    self.code = code;
-                    // Parse TROY code and update repository
-                    if self.code.ends_with("\n\n") {
-                        self.repository = Repository::new();
-                        for statement in self.code.lines() {
-                            if !statement.is_empty() {
-                                TroyParser::build_model(statement, &mut self.repository);
+                    // Add error reporting section
+                    ui.separator();
+                    ui.group(|ui| {
+                        ui.set_min_height(100.0);
+                        ui.heading("Errors");
+                        if self.error_message.is_empty() {
+                            ui.label("No errors");
+                        } else {
+                            ui.label(
+                                egui::RichText::new(&self.error_message).color(egui::Color32::RED),
+                            );
+                        }
+                    });
+
+                    if code != self.code {
+                        self.code = code;
+                        if self.code.ends_with("\n\n") {
+                            self.repository = Repository::new();
+                            self.error_message.clear();
+
+                            for statement in self.code.lines() {
+                                if !statement.is_empty() {
+                                    match TroyParser::build_model(statement, &mut self.repository) {
+                                        Ok(_) => println!(
+                                            "RREPOSITORY:\n\n{}",
+                                            self.repository.display_state()
+                                        ),
+                                        Err(e) => {
+                                            self.error_message =
+                                                format!("Error parsing '{}': {}", statement, e);
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                         }
-                        println!("{}", self.repository.display_state()); // TODO  debug
                     }
-                }
+                });
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {

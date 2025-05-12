@@ -14,12 +14,15 @@ use super::person_qualifier::PersonQualifier;
 pub struct TroyParser;
 
 impl TroyParser {
-    pub fn build_model(statement: &str, repository: &mut Repository) {
+    pub fn build_model(
+        statement: &str,
+        repository: &mut Repository,
+    ) -> Result<(), pest::error::Error<Rule>> {
         println!("DEBUG: statement=  {}", statement);
 
         let mut source_entity_id = EntityType::Unknown;
 
-        let mut parse = TroyParser::parse(Rule::statement, statement).expect("unsuccessful parse");
+        let mut parse = TroyParser::parse(Rule::statement, statement)?;
 
         let pair: Pair<'_, Rule> = parse.next().unwrap();
 
@@ -32,6 +35,8 @@ impl TroyParser {
                 _ => (),
             }
         }
+
+        Ok(())
     }
 }
 
