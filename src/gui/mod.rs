@@ -37,18 +37,17 @@ impl eframe::App for BarnabyApp {
                     let mut code = self.code.clone();
                     editor.show(ui, &mut code);
 
-                    // Add error reporting section
+                    // Add error reporting section with full width
                     ui.separator();
-                    ui.group(|ui| {
+                    ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                         ui.set_min_height(100.0);
                         ui.heading("Errors");
-                        if self.error_message.is_empty() {
-                            ui.label("No errors");
+                        let error_text = if self.error_message.is_empty() {
+                            egui::RichText::new("No errors").color(egui::Color32::GREEN)
                         } else {
-                            ui.label(
-                                egui::RichText::new(&self.error_message).color(egui::Color32::RED),
-                            );
-                        }
+                            egui::RichText::new(&self.error_message).color(egui::Color32::RED)
+                        };
+                        ui.add(egui::Label::new(error_text).wrap(true));
                     });
 
                     if code != self.code {
