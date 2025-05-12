@@ -41,7 +41,12 @@ impl eframe::App for BarnabyApp {
                     self.code = code;
                     // Parse TROY code and update repository
                     if self.code.ends_with("\n\n") {
-                        TroyParser::build_model(&self.code, &mut self.repository);
+                        self.repository = Repository::new();
+                        for statement in self.code.lines() {
+                            if !statement.is_empty() {
+                                TroyParser::build_model(statement, &mut self.repository);
+                            }
+                        }
                         println!("{}", self.repository.display_state()); // TODO  debug
                     }
                 }
