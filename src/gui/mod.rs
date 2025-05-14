@@ -53,22 +53,20 @@ impl eframe::App for BarnabyApp {
 
                     if code != self.code {
                         self.code = code;
-                        if self.code.ends_with("\n\n") {
-                            self.repository = Repository::new();
-                            self.error_message.clear();
+                        self.repository = Repository::new();
+                        self.error_message.clear();
 
-                            for statement in self.code.lines() {
-                                if !statement.is_empty() {
-                                    match TroyParser::build_model(statement, &mut self.repository) {
-                                        Ok(_) => println!(
-                                            "RREPOSITORY:\n\n{}",
-                                            self.repository.display_state()
-                                        ),
-                                        Err(e) => {
-                                            self.error_message =
-                                                format!("Error parsing '{}': {}", statement, e);
-                                            break;
-                                        }
+                        for statement in self.code.lines() {
+                            if !statement.is_empty() {
+                                match TroyParser::build_model(statement, &mut self.repository) {
+                                    Ok(_) => println!(
+                                        "RREPOSITORY:\n\n{}",
+                                        self.repository.display_state()
+                                    ),
+                                    Err(e) => {
+                                        self.error_message =
+                                            format!("Error parsing '{}': {}", statement, e);
+                                        break;
                                     }
                                 }
                             }
