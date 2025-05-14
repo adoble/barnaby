@@ -18,8 +18,6 @@ impl TroyParser {
         statement: &str,
         repository: &mut Repository,
     ) -> Result<(), pest::error::Error<Rule>> {
-        println!("DEBUG: statement=  {}", statement);
-
         let mut source_entity_id = EntityType::Unknown;
 
         let mut parse = TroyParser::parse(Rule::statement, statement)?;
@@ -30,8 +28,8 @@ impl TroyParser {
 
         for pair in inner_rules {
             match pair.as_rule() {
-                Rule::relation => process_relationship(source_entity_id, pair, repository),
-                Rule::entity => source_entity_id = process_entity(pair, repository),
+                Rule::relation => process_relationship(source_entity_id, pair, repository)?,
+                Rule::entity => source_entity_id = process_entity(pair, repository)?,
                 _ => (),
             }
         }
@@ -44,7 +42,7 @@ pub fn process_relationship(
     source_entity_id: EntityType,
     pair: Pair<'_, Rule>,
     repository: &mut Repository,
-) {
+) -> Result<(), pest::error::Error<Rule>> {
     assert!(source_entity_id != EntityType::Unknown);
 
     let mut target_entity_id = EntityType::Unknown;
@@ -56,7 +54,7 @@ pub fn process_relationship(
     for pair in inner_rules {
         match pair.as_rule() {
             Rule::link => (link_id, times) = process_link(pair),
-            Rule::entity => target_entity_id = process_entity(pair, repository),
+            Rule::entity => target_entity_id = process_entity(pair, repository)?,
             _ => (),
         }
     }
@@ -70,6 +68,8 @@ pub fn process_relationship(
     };
 
     repository.add_relationship(relationship);
+
+    Ok(())
 }
 
 // Process link
@@ -90,7 +90,10 @@ pub fn process_link(pair: Pair<'_, Rule>) -> (String, Vec<Time>) {
 }
 
 // Process an entity
-pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) -> EntityType {
+pub fn process_entity(
+    pair: Pair<'_, Rule>,
+    repository: &mut Repository,
+) -> Result<EntityType, pest::error::Error<Rule>> {
     let mut entity_id = EntityType::Unknown;
 
     let inner_rules = pair.into_inner();
@@ -104,11 +107,20 @@ pub fn process_entity(pair: Pair<'_, Rule>, repository: &mut Repository) -> Enti
             //Rule::alias => process_alias(pair, repository),
             // Rule::entity => process_entity(pair),
             // Rule::relationship => println!("Relationship"),
-            _ => EntityType::Unknown, // TODO this is an error condition
+            _ => {
+                let error = pest::error::Error::new_from_span(
+                    pest::error::ErrorVariant::ParsingError {
+                        positives: vec![Rule::entity],
+                        negatives: vec![pair.as_rule()],
+                    },
+                    pair.as_span(),
+                );
+                return Err(error);
+            } // TODO this is an error condition
         };
     }
 
-    entity_id
+    Ok(entity_id)
 }
 
 // Process and event
@@ -461,5 +473,36 @@ mod tests {
 
         assert!(times.contains(&"from 1984".to_string()));
         assert!(times.contains(&"until 1999".to_string()));
+    }
+
+    #[test]
+    fn test_parse_no_error() {
+        let mut repo = Repository::new();
+        let result = TroyParser::build_model(
+            "pv Robert Bayly   married  t from 1984   t until 1999   p Rebecca Bayly",
+            &mut repo,
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_entity_error() {
+        let mut repo = Repository::new();
+
+        // Incorrect keyowrd
+        let result = TroyParser::build_model("x Robert Bayly", &mut repo);
+        assert!(result.is_err());
+    }
+
+    #[ignore = "as more subtle problem with grammer. TODO later."]
+    #[test]
+    fn test_parse_link_error() {
+        let mut repo = Repository::new();
+
+        // Incorrect keyword
+        let result = TroyParser::build_model("p Robert Bayly   owned  z Quarry", &mut repo);
+
+        assert!(result.is_err());
     }
 }
