@@ -1,5 +1,5 @@
 use crate::lang_proc::troy_parser::TroyParser;
-use crate::model::repository::{self, Repository};
+use crate::model::repository::Repository;
 use eframe::egui;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use petgraph::stable_graph::StableGraph;
@@ -49,7 +49,7 @@ impl eframe::App for BarnabyApp {
                         } else {
                             egui::RichText::new(&self.error_message).color(egui::Color32::RED)
                         };
-                        ui.add(egui::Label::new(error_text).wrap(true));
+                        ui.add(egui::Label::new(error_text).wrap());
                     });
 
                     if code != self.code {

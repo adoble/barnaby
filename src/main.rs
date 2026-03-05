@@ -15,6 +15,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Barnaby",
         native_options,
-        Box::new(|cc| Box::new(BarnabyApp::new(cc))),
+        Box::new(|cc| Ok(Box::new(BarnabyApp::new(cc)))),
     )
 }
