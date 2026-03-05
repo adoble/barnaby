@@ -1,5 +1,5 @@
+use crate::lang_proc::troy_parser::TroyParser;
 use crate::model::repository::{self, Repository};
-use crate::parse::troy_parser::TroyParser;
 use eframe::egui;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 

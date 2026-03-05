@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
-mod gui;
+mod lang_proc;
 mod model;
-mod parse;
+mod user_interface;
 
-use gui::BarnabyApp;
+use user_interface::BarnabyApp;
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
