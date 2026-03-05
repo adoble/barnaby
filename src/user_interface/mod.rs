@@ -2,6 +2,7 @@ use crate::lang_proc::troy_parser::TroyParser;
 use crate::model::repository::{self, Repository};
 use eframe::egui;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
+use petgraph::stable_graph::StableGraph;
 
 pub struct BarnabyApp {
     code: String,
@@ -77,7 +78,58 @@ impl eframe::App for BarnabyApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Graph View");
-            ui.label("Graph visualization will be implemented here");
+
+            let mut g = StableGraph::new();
+
+            let a = g.add_node(());
+            let b = g.add_node(());
+            let c = g.add_node(());
+
+            g.add_edge(a, b, ());
+            g.add_edge(b, c, ());
+            g.add_edge(c, a, ());
+
+            // Allocate space for the graph
+            let (response, painter) = ui.allocate_painter(
+                egui::Vec2::new(ui.available_width(), 300.0),
+                egui::Sense::hover(),
+            );
+
+            let rect = response.rect;
+
+            // Define positions for nodes (simple hardcoded layout)
+            let node_positions = [
+                (rect.center() + egui::Vec2::new(-50.0, -50.0)), // a
+                (rect.center() + egui::Vec2::new(50.0, -50.0)),  // b
+                (rect.center() + egui::Vec2::new(0.0, 50.0)),    // c
+            ];
+
+            let node_radius = 20.0;
+
+            // Draw edges
+            for edge in g.edge_indices() {
+                if let Some((source, target)) = g.edge_endpoints(edge) {
+                    let source_pos = node_positions[source.index()];
+                    let target_pos = node_positions[target.index()];
+                    painter.line_segment(
+                        [source_pos, target_pos],
+                        egui::Stroke::new(2.0, egui::Color32::BLACK),
+                    );
+                }
+            }
+
+            // Draw nodes
+            for (i, &pos) in node_positions.iter().enumerate() {
+                painter.circle_filled(pos, node_radius, egui::Color32::BLUE);
+                // Optionally add labels
+                painter.text(
+                    pos,
+                    egui::Align2::CENTER_CENTER,
+                    format!("N{}", i),
+                    egui::FontId::default(),
+                    egui::Color32::WHITE,
+                );
+            }
         });
     }
 }
