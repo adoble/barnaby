@@ -1,14 +1,17 @@
 use crate::lang_proc::troy_parser::TroyParser;
 use crate::model::repository::Repository;
+use crate::model::EntityType;
 use eframe::egui;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use egui_graphs::{DefaultGraphView, Graph};
 use petgraph::stable_graph::StableGraph;
+use std::collections::HashMap;
 
 pub struct BarnabyApp {
     code: String,
     repository: Repository,
-    error_message: String, // Add this field
+    error_message: String,
+    graph: Option<Graph<(), ()>>,
 }
 
 impl BarnabyApp {
@@ -17,19 +20,49 @@ impl BarnabyApp {
             code: String::new(),
             repository: Repository::new(),
             error_message: String::new(),
+            graph: None,
         }
     }
 
     pub fn create_graph(&self) -> StableGraph<(), ()> {
-        let mut g = StableGraph::new();
+        println!("DEBUG: Creating graph from repository state:\n");
 
-        let a = g.add_node(());
-        let b = g.add_node(());
-        let c = g.add_node(());
+        // let mut g = StableGraph::new();
+        let mut g = StableGraph::default();
+        let mut entity_to_node: HashMap<EntityType, petgraph::graph::NodeIndex> = HashMap::new();
 
-        g.add_edge(a, b, ());
-        g.add_edge(b, c, ());
-        g.add_edge(c, a, ());
+        // Add nodes for persons
+        for person in self.repository.persons.iter() {
+            let idx = g.add_node(());
+            entity_to_node.insert(EntityType::Person(person.id()), idx);
+        }
+
+        // Add nodes for locations
+        for location in self.repository.locations.iter() {
+            let idx = g.add_node(());
+            entity_to_node.insert(EntityType::Location(location.id()), idx);
+        }
+
+        // Add nodes for objects
+        for object in self.repository.objects.iter() {
+            let idx = g.add_node(());
+            entity_to_node.insert(EntityType::Object(object.id()), idx);
+        }
+
+        // Add nodes for events
+        for event in self.repository.events.iter() {
+            let idx = g.add_node(());
+            entity_to_node.insert(EntityType::Event(event.id()), idx);
+        }
+
+        // Add edges from relationships
+        for rel in self.repository.relationships.iter() {
+            if let (Some(&from_idx), Some(&to_idx)) =
+                (entity_to_node.get(&rel.from), entity_to_node.get(&rel.to))
+            {
+                g.add_edge(from_idx, to_idx, ());
+            }
+        }
 
         g
     }
@@ -71,6 +104,7 @@ impl eframe::App for BarnabyApp {
                         self.code = code;
                         self.repository = Repository::new();
                         self.error_message.clear();
+                        self.graph = None;
 
                         for statement in self.code.lines() {
                             if !statement.is_empty() {
@@ -94,9 +128,11 @@ impl eframe::App for BarnabyApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Graph View");
 
-            ui.add(&mut DefaultGraphView::new(&mut Graph::from(
-                &self.create_graph(),
-            )));
+            if self.graph.is_none() {
+                self.graph = Some(Graph::from(&self.create_graph()));
+            }
+
+            ui.add(&mut DefaultGraphView::new(self.graph.as_mut().unwrap()));
         });
     }
 }

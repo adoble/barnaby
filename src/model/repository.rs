@@ -87,7 +87,7 @@ impl Repository {
     pub fn display_state(&self) -> String {
         let mut output = String::new();
 
-        output.push_str("REPOSITORY --> ");
+        output.push_str("REPOSITORY --> \n");
 
         // Display Persons
         output.push_str("PERSONS:\n");
